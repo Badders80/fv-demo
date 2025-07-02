@@ -2,32 +2,51 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@futureverse/auth-react';
 
 export default function Login() {
-  const { authClient } = useAuth();
-  const [signInState, setSignInState] = useState<boolean | undefined>(undefined);
+  const { authClient, signIn, userSession, isFetchingSession } = useAuth();
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
-  useEffect(() => {
-    console.log('authClient methods:', authClient);
-    const userStateChange = (user: any) => {
-      if (user) setSignInState(true);
-      else setSignInState(false);
-    };
-    authClient.addUserStateListener(userStateChange);
-    return () => {
-      authClient.removeUserStateListener(userStateChange);
-    };
-  }, [authClient]);
+  const handleSignIn = async () => {
+    try {
+      setIsSigningIn(true);
+      await signIn({ authFlow: 'redirect' });
+    } catch (error) {
+      console.error('Sign in error:', error);
+      setIsSigningIn(false);
+    }
+  };
 
-  if (signInState === true) {
-    return <div>Redirecting, please wait...</div>;
+  const handleSignOut = async () => {
+    try {
+      await authClient.signOutPass({ flow: 'redirect' });
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
+  if (isFetchingSession) {
+    return <div>Loading...</div>;
   }
-  if (signInState === false) {
+
+  if (userSession) {
     return (
       <div>
-        <div>Not Authenticated - Please Log In...</div>
-        {/* Replace the method below with the correct one after checking the console */}
-        <button onClick={() => {/* authClient.[METHOD_NAME]() */}}>Log In</button>
+        <h2>Welcome!</h2>
+        <p>You are signed in with Pass</p>
+        <p>User ID: {userSession.user?.profile?.sub}</p>
+        <button onClick={handleSignOut} disabled={isSigningIn}>
+          Sign Out
+        </button>
       </div>
     );
   }
-  return <div>Authenticating...</div>;
+
+  return (
+    <div>
+      <h2>Sign In with Pass</h2>
+      <p>Click the button below to sign in using Futureverse Pass</p>
+      <button onClick={handleSignIn} disabled={isSigningIn}>
+        {isSigningIn ? 'Signing In...' : 'Sign In with Pass'}
+      </button>
+    </div>
+  );
 } 
